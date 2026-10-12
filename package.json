@@ -1,0 +1,21 @@
+{
+  "name": "ai-search-simulation",
+  "version": "1.0.0",
+  "description": "Interactive AI Search Simulation Studio with BFS, DFS, UCS, and Gemini AI Copilot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ai",
+    "search-algorithms",
+    "bfs",
+    "dfs",
+    "ucs",
+    "gemini",
+    "simulation"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -32,6 +32,10 @@
         </select>
       </div>
 
+      <button id="ai-copilot-toggle-btn" class="header-copilot-btn" title="Open Gemini AI Simulation Copilot & Notes">
+        <span>✨</span> Gemini Copilot
+      </button>
+
       <button id="help-btn" class="header-btn" title="View Guide & Keyboard Shortcuts">
         <span>📖</span> Guide
       </button>
@@ -303,13 +307,110 @@
     </div>
   </div>
 
+  <!-- AI Copilot & Study Notes Side Drawer -->
+  <aside id="ai-copilot-drawer" class="ai-copilot-drawer" aria-label="Gemini AI Simulation Copilot">
+    <div class="ai-drawer-header">
+      <div class="ai-drawer-title-group">
+        <span>✨</span>
+        <h2>Gemini AI Copilot</h2>
+      </div>
+      <button id="ai-drawer-close-btn" class="ai-close-btn" aria-label="Close Copilot">&times;</button>
+    </div>
+
+    <!-- Copilot Navigation Tabs -->
+    <nav class="ai-tabs-nav" role="tablist">
+      <button class="ai-tab-btn active" data-tab="chat" role="tab" aria-selected="true">💬 Chat &amp; Simulate</button>
+      <button class="ai-tab-btn" data-tab="notes" role="tab" aria-selected="false">📓 Study Notes</button>
+      <button class="ai-tab-btn" data-tab="settings" role="tab" aria-selected="false">⚙️ Settings</button>
+    </nav>
+
+    <!-- Tab 1: Chat & Natural Language Simulation -->
+    <div class="ai-tab-content active" data-pane="chat">
+      <div class="ai-chat-messages" id="ai-chat-messages">
+        <div class="ai-chat-msg assistant">
+          <div class="msg-header">
+            <span class="msg-avatar">✨</span>
+            <span class="msg-sender">Gemini Copilot</span>
+          </div>
+          <div class="msg-body">
+            Hello! I am your AI Search Copilot. You can ask me theory questions, ask me to summarize the current search into <strong>Study Notes</strong>, or ask me to <strong>create and simulate custom graph scenarios</strong> directly!
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Prompt Suggestion Pills -->
+      <div class="quick-prompts-bar">
+        <button class="quick-prompt-pill">💡 Why did UCS find a different path than BFS?</button>
+        <button class="quick-prompt-pill">🧪 Create a graph where BFS takes 2 hops (cost 20) but UCS takes 4 hops (cost 6)</button>
+        <button class="quick-prompt-pill">🌲 Generate a binary tree and simulate DFS</button>
+        <button class="quick-prompt-pill">📝 Summarize current run into study notes</button>
+      </div>
+
+      <!-- Input Area -->
+      <div class="ai-input-area">
+        <textarea id="ai-chat-input" class="ai-chat-input" placeholder="Ask questions or type 'Simulate a 5-node city network'..." rows="1"></textarea>
+        <button id="ai-send-btn" class="ai-send-btn">Send</button>
+      </div>
+    </div>
+
+    <!-- Tab 2: Study Notes -->
+    <div class="ai-tab-content" data-pane="notes">
+      <div class="notes-pane-toolbar">
+        <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Your AI Study Notes</span>
+        <button id="ai-gen-note-btn" class="header-btn" style="padding: 5px 10px; font-size: 0.78rem;">
+          <span>⚡</span> Summarize Simulation
+        </button>
+      </div>
+      <div class="ai-notes-list" id="ai-notes-list"></div>
+    </div>
+
+    <!-- Tab 3: API Key & Server Settings -->
+    <div class="ai-tab-content" data-pane="settings">
+      <div class="settings-pane">
+        <div class="settings-group">
+          <label style="font-weight: 600;">Serverless Proxy (Recommended)</label>
+          <div class="settings-help">
+            The studio proxies requests through <code>/api/gemini</code>. If running locally with Node, set <code>GEMINI_API_KEY</code> in your <code>.env</code> file. When deploying to Vercel, set <code>GEMINI_API_KEY</code> in your Vercel Project Settings.
+          </div>
+        </div>
+
+        <div class="settings-group" style="margin-top: 14px;">
+          <label for="client-api-key-input" style="font-weight: 600;">Client-Side API Key (Fallback)</label>
+          <input type="password" id="client-api-key-input" class="settings-input" placeholder="AIzaSy..." autocomplete="off">
+          <div class="settings-help">
+            If you are running the static site without a backend server, you can store your Google Gemini API key securely in your browser's <code>localStorage</code>.
+            Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.
+          </div>
+          <button id="save-api-key-btn" class="ctrl-btn primary" style="margin-top: 8px; align-self: flex-start; padding: 6px 14px; font-size: 0.8rem;">
+            Save Key Preference
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Note Detail Full Modal -->
+  <div id="ai-note-detail-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width: 720px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2 id="note-modal-title">Study Note</h2>
+        <button class="modal-close-btn" onclick="window.aiAssistant.closeNoteModal()">&times;</button>
+      </div>
+      <div id="note-modal-body" class="modal-body" style="overflow-y: auto; flex: 1; padding-right: 6px;"></div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="algorithms.js"></script>
   <script src="visualization.js"></script>
+  <script src="ai-assistant.js"></script>
   <script>
     // App Initialization & DOM Binding
     document.addEventListener('DOMContentLoaded', () => {
       const visualizer = new Visualizer('simulation-canvas');
+
+      // Initialize Gemini AI Copilot
+      window.aiAssistant = new AIAssistant(visualizer);
 
       // Load initial preset
       visualizer.loadPreset('weighted');
@@ -379,7 +480,7 @@
 
       // Keyboard Shortcuts
       window.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
         if (e.code === 'Space') {
           e.preventDefault();
