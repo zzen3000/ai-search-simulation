@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Search Simulation — BFS, DFS & UCS Visualizer</title>
+  <meta name="description" content="Interactive visualizer for AI uninformed search algorithms: Breadth-First Search (BFS), Depth-First Search (DFS), and Uniform Cost Search (UCS). Live frontier inspection and step-by-step playback.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1>AI Search Simulation <span class="brand-badge">Uninformed Search</span></h1>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Preset Graphs Selector -->
+      <div class="preset-dropdown-container">
+        <span class="preset-label">Preset Graph:</span>
+        <select id="preset-select" class="preset-select" aria-label="Preset Graph Selection">
+          <option value="weighted" selected>Weighted Dilemma (UCS vs BFS)</option>
+          <option value="tree">Binary Tree (DFS vs BFS)</option>
+          <option value="romania">Romania Roadmap (AIMA Classic)</option>
+          <option value="grid">Lattice Grid Graph</option>
+        </select>
+      </div>
+
+      <button id="help-btn" class="header-btn" title="View Guide & Keyboard Shortcuts">
+        <span>📖</span> Guide
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Layout -->
+  <main class="main-layout">
+    
+    <!-- Left Column: Simulation Canvas & Playback Controls -->
+    <section class="simulation-column">
+
+      <!-- Algorithm Selection Tabs -->
+      <div class="algorithm-bar">
+        <div class="algo-tabs" role="tablist">
+          <button class="algo-tab active" data-algo="BFS" role="tab" aria-selected="true" id="tab-bfs">
+            <span>Breadth-First Search</span>
+            <span class="algo-pill">FIFO Queue</span>
+          </button>
+          <button class="algo-tab" data-algo="DFS" role="tab" aria-selected="false" id="tab-dfs">
+            <span>Depth-First Search</span>
+            <span class="algo-pill">LIFO Stack</span>
+          </button>
+          <button class="algo-tab" data-algo="UCS" role="tab" aria-selected="false" id="tab-ucs">
+            <span>Uniform Cost Search</span>
+            <span class="algo-pill">Priority Heap</span>
+          </button>
+        </div>
+
+        <div class="algo-quick-info">
+          <span class="ds-type-indicator">Frontier: <strong id="current-ds-label">FIFO Queue</strong></span>
+        </div>
+      </div>
+
+      <!-- Graph Canvas Visualizer Card -->
+      <div class="canvas-card">
+        
+        <!-- Canvas Top Toolbar: Modes & Camera -->
+        <div class="canvas-toolbar">
+          <div class="mode-buttons" role="group" aria-label="Graph Editing Modes">
+            <button class="mode-btn active" data-mode="select" title="Move & drag nodes or pan canvas">
+              <span>✋</span> Move / Pan
+            </button>
+            <button class="mode-btn" data-mode="set-start" title="Click any node to assign as START">
+              <span>🟢</span> Set Start
+            </button>
+            <button class="mode-btn" data-mode="set-goal" title="Click any node to assign as GOAL">
+              <span>🔴</span> Set Goal
+            </button>
+            <button class="mode-btn" data-mode="add-node" title="Click empty space to add new node">
+              <span>➕</span> Add Node
+            </button>
+            <button class="mode-btn" data-mode="add-edge" title="Click two nodes to connect with weighted edge">
+              <span>🔗</span> Add Edge
+            </button>
+            <button class="mode-btn" data-mode="delete" title="Click node or edge to remove">
+              <span>🗑️</span> Delete
+            </button>
+          </div>
+
+          <div class="canvas-actions">
+            <button id="zoom-in-btn" class="icon-btn" title="Zoom In">+</button>
+            <button id="zoom-out-btn" class="icon-btn" title="Zoom Out">−</button>
+            <button id="center-btn" class="icon-btn" title="Fit to Screen">⛶</button>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-wrapper">
+          <canvas id="simulation-canvas"></canvas>
+
+          <!-- Canvas Color Legend -->
+          <div class="canvas-legend" aria-hidden="true">
+            <div class="legend-item"><span class="legend-dot dot-start"></span> Start Node</div>
+            <div class="legend-item"><span class="legend-dot dot-goal"></span> Goal Node</div>
+            <div class="legend-item"><span class="legend-dot dot-frontier"></span> In Frontier</div>
+            <div class="legend-item"><span class="legend-dot dot-visited"></span> Explored</div>
+            <div class="legend-item"><span class="legend-dot dot-path"></span> Optimal Path</div>
+          </div>
+
+          <!-- Bottom Status Banner -->
+          <div id="canvas-status-banner" class="canvas-status-banner">
+            Select & Drag Mode: Drag nodes to position them, or drag background to pan canvas.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Playback Controls Card -->
+      <div class="controls-card">
+        
+        <!-- Timeline scrubber -->
+        <div class="timeline-row">
+          <div class="timeline-slider-wrapper">
+            <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="0" value="0" aria-label="Simulation Step Timeline">
+          </div>
+          <div class="step-counter">
+            <strong id="timeline-step-label">Step 0</strong> <span id="timeline-total-label">of 0</span>
+          </div>
+        </div>
+
+        <!-- Buttons row -->
+        <div class="buttons-row">
+          <div class="playback-btn-group">
+            <button id="jump-start-btn" class="ctrl-btn" title="Jump to Start (0)">
+              ⏮
+            </button>
+            <button id="step-back-btn" class="ctrl-btn" title="Step Backward (Left Arrow)">
+              ◀ Step
+            </button>
+            <button id="play-btn" class="ctrl-btn primary" title="Play / Pause (Spacebar)">
+              <span class="icon">▶</span>
+              <span class="label">Play</span>
+            </button>
+            <button id="step-forward-btn" class="ctrl-btn" title="Step Forward (Right Arrow)">
+              Step ▶
+            </button>
+            <button id="jump-end-btn" class="ctrl-btn" title="Jump to End">
+              ⏭
+            </button>
+            <button id="reset-btn" class="ctrl-btn" title="Restart Simulation (R)">
+              🔄 Reset
+            </button>
+          </div>
+
+          <div class="speed-control-group">
+            <span class="speed-label">Speed:</span>
+            <input type="range" id="speed-slider" class="speed-slider" min="50" max="1000" step="25" value="400" aria-label="Playback Speed">
+            <span id="speed-value" class="speed-value">400ms</span>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Right Column: Inspector Panels & Analytics -->
+    <aside class="inspector-column">
+
+      <!-- Metrics Cards Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Nodes Explored</span>
+          <span class="metric-value" id="metric-explored">0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Frontier Size</span>
+          <span class="metric-value" id="metric-frontier">0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Peak Frontier</span>
+          <span class="metric-value" id="metric-peak">0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Path Cost (g)</span>
+          <span class="metric-value" id="metric-cost">-</span>
+        </div>
+        <div class="metric-card" style="grid-column: span 2;">
+          <span class="metric-label">Search Status</span>
+          <div id="metric-status" style="margin-top: 4px;">
+            <span class="status-badge idle">Idle</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Data Structure Inspector -->
+      <div class="inspector-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📦</span>
+            <span id="ds-type-title">FIFO Queue</span>
+          </div>
+          <span id="ds-badge" class="panel-badge">Frontier (Queue)</span>
+        </div>
+        <div class="ds-content-area" id="data-structure-content">
+          <div class="ds-empty">Frontier is currently empty.</div>
+        </div>
+      </div>
+
+      <!-- Live Step Narration / Explanation Log -->
+      <div class="log-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📝</span>
+            <span>Step Explanation</span>
+          </div>
+          <span class="panel-badge">Live Trace</span>
+        </div>
+        <div class="narration-container" id="narration-log">
+          <div class="log-empty">Select start and goal nodes to begin simulation.</div>
+        </div>
+      </div>
+
+      <!-- Theoretical Comparison Matrix Card -->
+      <div class="theory-card">
+        <h2 class="theory-title">Algorithm Properties (Russell &amp; Norvig)</h2>
+        <table class="theory-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>BFS</th>
+              <th>DFS</th>
+              <th>UCS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Frontier</td>
+              <td>Queue (FIFO)</td>
+              <td>Stack (LIFO)</td>
+              <td>Min-PQ (Cost)</td>
+            </tr>
+            <tr>
+              <td>Complete?</td>
+              <td><span class="badge-tag yes">Yes</span></td>
+              <td><span class="badge-tag no">No (cycles)</span></td>
+              <td><span class="badge-tag yes">Yes (c &gt; 0)</span></td>
+            </tr>
+            <tr>
+              <td>Optimal?</td>
+              <td><span class="badge-tag yes">Unit costs</span></td>
+              <td><span class="badge-tag no">No</span></td>
+              <td><span class="badge-tag yes">Always</span></td>
+            </tr>
+            <tr>
+              <td>Time</td>
+              <td>O(b<sup>d</sup>)</td>
+              <td>O(b<sup>m</sup>)</td>
+              <td>O(b<sup>1 + C*/ε</sup>)</td>
+            </tr>
+            <tr>
+              <td>Space</td>
+              <td>O(b<sup>d</sup>)</td>
+              <td>O(b·m)</td>
+              <td>O(b<sup>1 + C*/ε</sup>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Help & Keyboard Shortcuts Modal -->
+  <div id="help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title">Simulation Guide &amp; Controls</h2>
+        <button id="modal-close" class="modal-close-btn" aria-label="Close Guide">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>This interactive studio simulates the 3 fundamental <strong>uninformed search algorithms</strong> in Artificial Intelligence:</p>
+        <ul>
+          <li><strong>Breadth-First Search (BFS):</strong> Uses a First-In-First-Out (FIFO) queue to explore the graph level by level. Guarantees shortest path in hop count.</li>
+          <li><strong>Depth-First Search (DFS):</strong> Uses a Last-In-First-Out (LIFO) stack to plunge down branches before backtracking. Low memory footprint, but not cost-optimal.</li>
+          <li><strong>Uniform Cost Search (UCS):</strong> Expands the frontier node with the lowest cumulative path cost <code>g(n)</code> via a Min-Priority Queue. Guarantees the lowest total path cost when edge weights vary.</li>
+        </ul>
+        <p><strong>Interactive Shortcuts:</strong></p>
+        <ul>
+          <li><kbd>Space</kbd> : Play or Pause animation</li>
+          <li><kbd>Right Arrow</kbd> : Step 1 frame forward</li>
+          <li><kbd>Left Arrow</kbd> : Step 1 frame backward</li>
+          <li><kbd>R</kbd> : Reset playback to beginning</li>
+          <li><strong>Drag Canvas:</strong> Pan view / <strong>Scroll:</strong> Zoom in &amp; out</li>
+          <li><strong>Drag Nodes:</strong> Reposition vertices in real-time</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="algorithms.js"></script>
+  <script src="visualization.js"></script>
+  <script>
+    // App Initialization & DOM Binding
+    document.addEventListener('DOMContentLoaded', () => {
+      const visualizer = new Visualizer('simulation-canvas');
+
+      // Load initial preset
+      visualizer.loadPreset('weighted');
+
+      // Preset Selector
+      const presetSelect = document.getElementById('preset-select');
+      presetSelect.addEventListener('change', (e) => {
+        visualizer.loadPreset(e.target.value);
+      });
+
+      // Algorithm Tabs
+      const algoTabs = document.querySelectorAll('.algo-tab');
+      const dsLabel = document.getElementById('current-ds-label');
+      algoTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          algoTabs.forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-selected', 'true');
+          const algo = tab.dataset.algo;
+          
+          if (dsLabel) {
+            dsLabel.textContent = algo === 'BFS' ? 'FIFO Queue' : algo === 'DFS' ? 'LIFO Stack' : 'Min-Priority Queue';
+          }
+          
+          visualizer.setAlgorithm(algo);
+        });
+      });
+
+      // Mode Buttons
+      const modeButtons = document.querySelectorAll('.mode-btn');
+      modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          visualizer.setInteractionMode(btn.dataset.mode);
+        });
+      });
+
+      // Zoom & Pan Buttons
+      document.getElementById('zoom-in-btn').addEventListener('click', () => visualizer.zoomIn());
+      document.getElementById('zoom-out-btn').addEventListener('click', () => visualizer.zoomOut());
+      document.getElementById('center-btn').addEventListener('click', () => visualizer.centerGraph());
+
+      // Playback Controls
+      document.getElementById('play-btn').addEventListener('click', () => visualizer.togglePlay());
+      document.getElementById('step-forward-btn').addEventListener('click', () => visualizer.stepForward());
+      document.getElementById('step-back-btn').addEventListener('click', () => visualizer.stepBackward());
+      document.getElementById('jump-start-btn').addEventListener('click', () => visualizer.jumpToStart());
+      document.getElementById('jump-end-btn').addEventListener('click', () => visualizer.jumpToEnd());
+      document.getElementById('reset-btn').addEventListener('click', () => visualizer.jumpToStart());
+
+      // Timeline Scrubber
+      const timelineSlider = document.getElementById('timeline-slider');
+      timelineSlider.addEventListener('input', (e) => {
+        visualizer.goToFrame(parseInt(e.target.value, 10));
+      });
+
+      // Speed Slider
+      const speedSlider = document.getElementById('speed-slider');
+      const speedValue = document.getElementById('speed-value');
+      speedSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        visualizer.setSpeed(val);
+        speedValue.textContent = `${val}ms`;
+      });
+
+      // Keyboard Shortcuts
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          visualizer.togglePlay();
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          visualizer.stepForward();
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          visualizer.stepBackward();
+        } else if (e.code === 'KeyR') {
+          visualizer.jumpToStart();
+        } else if (e.code === 'Escape') {
+          visualizer.setInteractionMode('select');
+        }
+      });
+
+      // Modal dialog
+      const helpModal = document.getElementById('help-modal');
+      const helpBtn = document.getElementById('help-btn');
+      const closeBtn = document.getElementById('modal-close');
+
+      helpBtn.addEventListener('click', () => helpModal.classList.add('open'));
+      closeBtn.addEventListener('click', () => helpModal.classList.remove('open'));
+      helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) helpModal.classList.remove('open');
+      });
+    });
+  </script>
+</body>
+</html>
