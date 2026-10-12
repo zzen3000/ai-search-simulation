@@ -84,7 +84,10 @@ const server = http.createServer((req, res) => {
       };
 
       try {
-        await geminiHandler(req, vercelRes);
+        loadEnv();
+        delete require.cache[require.resolve('./api/gemini.js')];
+        const handler = require('./api/gemini.js');
+        await handler(req, vercelRes);
       } catch (err) {
         console.error('Server error handling /api/gemini:', err);
         res.statusCode = 500;

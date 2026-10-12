@@ -121,8 +121,8 @@ module.exports = async function handler(req, res) {
       parts: [{ text: userMessageText }]
     });
 
-    // Try gemini-2.5-flash with gemini-1.5-flash fallback
-    const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    // Models supported by Google Gemini API
+    const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
     let lastError = null;
 
     for (const model of models) {
