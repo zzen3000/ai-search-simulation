@@ -36,7 +36,7 @@ class Graph {
     return u < v ? `${u}--${v}` : `${v}--${u}`;
   }
 
-  addEdge(from, to, weight = 1, directed = false) {
+  addEdge(from, to, weight = 1, directed = false, curve = 0) {
     if (!this.nodes.has(from) || !this.nodes.has(to) || from === to) return false;
     const key = this.getEdgeKey(from, to);
     this.edges.set(key, {
@@ -44,7 +44,8 @@ class Graph {
       from,
       to,
       weight: Math.max(1, Math.round(Number(weight) || 1)),
-      directed: this.isDirected || directed
+      directed: this.isDirected || directed,
+      curve: Number(curve) || 0
     });
     return true;
   }
@@ -83,6 +84,37 @@ class Graph {
   }
 
   // Pre-configured Graph Generators
+  static createKakRosMap() {
+    const g = new Graph();
+    g.isDirected = true;
+
+    // Node layout matching Figure 1 (Kuching food delivery map)
+    g.addNode('S', 'S (Shop)', 90, 260);
+    g.addNode('B', 'B', 240, 110);
+    g.addNode('A', 'A', 240, 260);
+    g.addNode('E', 'E', 420, 80);
+    g.addNode('D', 'D', 390, 310);
+    g.addNode('F', 'F', 510, 420);
+    g.addNode('C', 'C', 640, 420);
+    g.addNode('G', 'G (Customer)', 790, 260);
+
+    // One-way roads with travel times in minutes
+    g.addEdge('S', 'A', 3, true);
+    g.addEdge('S', 'B', 1, true);
+    g.addEdge('S', 'C', 6, true, 80); // Curves downward along bottom
+    g.addEdge('B', 'A', 1, true);
+    g.addEdge('B', 'E', 5, true);
+    g.addEdge('A', 'D', 2, true);
+    g.addEdge('A', 'G', 9, true, -75); // Curves upward over top
+    g.addEdge('C', 'G', 2, true);
+    g.addEdge('D', 'F', 1, true);
+    g.addEdge('D', 'G', 3, true);
+    g.addEdge('E', 'G', 4, true);
+    g.addEdge('F', 'C', 1, true);
+
+    return g;
+  }
+
   static createBinaryTree() {
     const g = new Graph();
     const treeData = [
@@ -581,6 +613,11 @@ class Visualizer {
     this.graph.clear();
 
     switch (presetName) {
+      case 'kakros':
+        this.graph = Graph.createKakRosMap();
+        this.startNodeId = 'S';
+        this.goalNodeId = 'G';
+        break;
       case 'tree':
         this.graph = Graph.createBinaryTree();
         this.startNodeId = 'A';
@@ -602,9 +639,9 @@ class Visualizer {
         this.goalNodeId = 'N_3_4';
         break;
       default:
-        this.graph = Graph.createWeightedDilemma();
-        this.startNodeId = 'Start';
-        this.goalNodeId = 'Goal';
+        this.graph = Graph.createKakRosMap();
+        this.startNodeId = 'S';
+        this.goalNodeId = 'G';
     }
 
     this.centerGraph();
@@ -1011,10 +1048,29 @@ class Visualizer {
       const isTreeEdge = treeEdgeSet.has(key);
       const isHovered = this.hoveredEdgeId === key;
 
+      const dx = v.x - u.x;
+      const dy = v.y - u.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const nx = dx / dist;
+      const ny = dy / dist;
+
+      const curve = edge.curve || 0;
+      const px = -ny;
+      const py = nx;
+      const ctrlX = (u.x + v.x) / 2 + px * curve;
+      const ctrlY = (u.y + v.y) / 2 + py * curve;
+
+      const badgeX = curve ? 0.25 * u.x + 0.5 * ctrlX + 0.25 * v.x : (u.x + v.x) / 2;
+      const badgeY = curve ? 0.25 * u.y + 0.5 * ctrlY + 0.25 * v.y : (u.y + v.y) / 2;
+
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(u.x, u.y);
-      ctx.lineTo(v.x, v.y);
+      if (curve) {
+        ctx.quadraticCurveTo(ctrlX, ctrlY, v.x, v.y);
+      } else {
+        ctx.lineTo(v.x, v.y);
+      }
 
       if (isPathEdge) {
         // Glowing gold/amber path edge
@@ -1049,15 +1105,55 @@ class Visualizer {
 
       ctx.restore();
 
+      // Render directed arrow head
+      if (edge.directed || this.graph.isDirected) {
+        const nodeRadius = 24;
+        let tangentX = nx;
+        let tangentY = ny;
+        let arrowTipX = v.x - nx * nodeRadius;
+        let arrowTipY = v.y - ny * nodeRadius;
+
+        if (curve) {
+          const tdx = v.x - ctrlX;
+          const tdy = v.y - ctrlY;
+          const tdist = Math.hypot(tdx, tdy) || 1;
+          tangentX = tdx / tdist;
+          tangentY = tdy / tdist;
+          arrowTipX = v.x - tangentX * nodeRadius;
+          arrowTipY = v.y - tangentY * nodeRadius;
+        }
+
+        const angle = Math.atan2(tangentY, tangentX);
+        const arrowLen = 11;
+        const arrowAngle = Math.PI / 7;
+
+        ctx.save();
+        ctx.fillStyle = isPathEdge ? '#f59e0b' : isActiveEdge ? '#38bdf8' : isTreeEdge ? '#818cf8' : isHovered ? '#94a3b8' : '#64748b';
+        ctx.beginPath();
+        ctx.moveTo(arrowTipX, arrowTipY);
+        ctx.lineTo(
+          arrowTipX - arrowLen * Math.cos(angle - arrowAngle),
+          arrowTipY - arrowLen * Math.sin(angle - arrowAngle)
+        );
+        ctx.lineTo(
+          arrowTipX - (arrowLen * 0.6) * Math.cos(angle),
+          arrowTipY - (arrowLen * 0.6) * Math.sin(angle)
+        );
+        ctx.lineTo(
+          arrowTipX - arrowLen * Math.cos(angle + arrowAngle),
+          arrowTipY - arrowLen * Math.sin(angle + arrowAngle)
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
       // Render edge weight badge
-      this.renderEdgeBadge(ctx, u, v, edge.weight, isPathEdge, isActiveEdge);
+      this.renderEdgeBadge(ctx, badgeX, badgeY, edge.weight, isPathEdge, isActiveEdge);
     }
   }
 
-  renderEdgeBadge(ctx, u, v, weight, isPathEdge, isActiveEdge) {
-    const midX = (u.x + v.x) / 2;
-    const midY = (u.y + v.y) / 2;
-
+  renderEdgeBadge(ctx, badgeX, badgeY, weight, isPathEdge, isActiveEdge) {
     const text = String(weight);
     ctx.font = 'bold 12px Inter, system-ui, sans-serif';
     const textWidth = ctx.measureText(text).width;
@@ -1067,7 +1163,7 @@ class Visualizer {
     const badgeH = 18;
 
     ctx.save();
-    ctx.translate(midX, midY);
+    ctx.translate(badgeX, badgeY);
 
     // Pill background
     ctx.beginPath();

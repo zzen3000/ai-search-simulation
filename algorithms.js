@@ -7,10 +7,19 @@
  * allowing scrubbing, stepping backwards/forwards, and live inspection of data structures.
  */
 
-// Simple Min-Priority Queue for UCS
+// Priority Queue for UCS with strict alphabetical tie-breaking
 class MinPriorityQueue {
   constructor() {
     this.heap = [];
+  }
+
+  _compare(a, b) {
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority;
+    }
+    const labelA = a.item?.id || a.item?.label || '';
+    const labelB = b.item?.id || b.item?.label || '';
+    return String(labelA).localeCompare(String(labelB));
   }
 
   enqueue(item, priority) {
@@ -43,7 +52,7 @@ class MinPriorityQueue {
 
   toArray() {
     // Return sorted shallow copy for live inspection
-    return [...this.heap].sort((a, b) => a.priority - b.priority);
+    return [...this.heap].sort((a, b) => this._compare(a, b));
   }
 
   _bubbleUp(index) {
@@ -51,7 +60,7 @@ class MinPriorityQueue {
     while (index > 0) {
       const parentIndex = Math.floor((index - 1) / 2);
       const parent = this.heap[parentIndex];
-      if (element.priority >= parent.priority) break;
+      if (this._compare(element, parent) >= 0) break;
       this.heap[index] = parent;
       index = parentIndex;
     }
@@ -67,16 +76,14 @@ class MinPriorityQueue {
       let swap = null;
 
       if (leftChildIndex < length) {
-        if (this.heap[leftChildIndex].priority < element.priority) {
+        if (this._compare(this.heap[leftChildIndex], element) < 0) {
           swap = leftChildIndex;
         }
       }
 
       if (rightChildIndex < length) {
-        if (
-          (swap === null && this.heap[rightChildIndex].priority < element.priority) ||
-          (swap !== null && this.heap[rightChildIndex].priority < this.heap[leftChildIndex].priority)
-        ) {
+        const compareTarget = swap === null ? element : this.heap[leftChildIndex];
+        if (this._compare(this.heap[rightChildIndex], compareTarget) < 0) {
           swap = rightChildIndex;
         }
       }
@@ -615,6 +622,82 @@ class SearchEngine {
     });
 
     return frames;
+  }
+
+  /**
+   * Generates formatted traces and table data specifically structured for Assignment 1
+   */
+  static generateAssignmentReport(graph, startId = 'S', goalId = 'G') {
+    const bfsFrames = this.runBFS(graph, startId, goalId);
+    const dfsFrames = this.runDFS(graph, startId, goalId);
+    const ucsFrames = this.runUCS(graph, startId, goalId);
+
+    const bfsExpanded = bfsFrames.filter(f => f.action === 'DEQUEUE').map(f => graph.getNodeLabel(f.currentNode));
+    const bfsResult = bfsFrames[bfsFrames.length - 1];
+
+    const dfsExpanded = dfsFrames.filter(f => f.action === 'POP').map(f => graph.getNodeLabel(f.currentNode));
+    const dfsResult = dfsFrames[dfsFrames.length - 1];
+
+    // UCS Steps: filter to when nodes are dequeued
+    const ucsActions = ucsFrames.filter(f => f.action === 'DEQUEUE_MIN' || f.action === 'SKIP_SUBOPTIMAL' || f.action === 'GOAL_FOUND');
+    const filteredSteps = [];
+    
+    for (const frame of ucsActions) {
+      if (frame.action === 'GOAL_FOUND') {
+        if (filteredSteps.length > 0 && filteredSteps[filteredSteps.length - 1].currentNode === frame.currentNode) {
+          filteredSteps[filteredSteps.length - 1].isGoal = true;
+          continue;
+        }
+      }
+      filteredSteps.push(frame);
+    }
+
+    const ucsTable = [];
+    for (let i = 0; i < filteredSteps.length; i++) {
+      const curFrame = filteredSteps[i];
+      const isSkip = curFrame.action === 'SKIP_SUBOPTIMAL';
+      const isGoal = curFrame.isGoal || curFrame.action === 'GOAL_FOUND';
+
+      let frontierAfter = [];
+      const curIndex = ucsFrames.indexOf(curFrame);
+      let nextDeqIndex = ucsFrames.length - 1;
+      for (let j = curIndex + 1; j < ucsFrames.length; j++) {
+        if (ucsFrames[j].action === 'DEQUEUE_MIN' || ucsFrames[j].action === 'SKIP_SUBOPTIMAL' || ucsFrames[j].action === 'GOAL_FOUND') {
+          nextDeqIndex = j - 1;
+          break;
+        }
+      }
+      frontierAfter = ucsFrames[nextDeqIndex].frontier.map(item => `${graph.getNodeLabel(item.id)}(${item.cost})`);
+
+      ucsTable.push({
+        step: i + 1,
+        node: `${graph.getNodeLabel(curFrame.currentNode)} (${curFrame.cost})`,
+        action: isSkip ? 'Skip' : isGoal ? 'Goal (Stop)' : 'Expand',
+        frontier: frontierAfter.length > 0 ? frontierAfter.join(', ') : 'Empty'
+      });
+    }
+
+    const ucsResult = ucsFrames[ucsFrames.length - 1];
+    const ucsExpanded = filteredSteps.filter(f => f.action !== 'SKIP_SUBOPTIMAL').map(f => graph.getNodeLabel(f.currentNode));
+
+    return {
+      bfs: {
+        expansionOrder: bfsExpanded,
+        path: bfsResult.path ? bfsResult.path.map(id => graph.getNodeLabel(id)) : [],
+        cost: bfsResult.cost
+      },
+      dfs: {
+        expansionOrder: dfsExpanded,
+        path: dfsResult.path ? dfsResult.path.map(id => graph.getNodeLabel(id)) : [],
+        cost: dfsResult.cost
+      },
+      ucs: {
+        table: ucsTable,
+        expansionOrder: ucsExpanded,
+        path: ucsResult.path ? ucsResult.path.map(id => graph.getNodeLabel(id)) : [],
+        cost: ucsResult.cost
+      }
+    };
   }
 }
 

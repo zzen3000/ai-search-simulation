@@ -25,12 +25,17 @@
       <div class="preset-dropdown-container">
         <span class="preset-label">Preset Graph:</span>
         <select id="preset-select" class="preset-select" aria-label="Preset Graph Selection">
-          <option value="weighted" selected>Weighted Dilemma (UCS vs BFS)</option>
+          <option value="kakros" selected>Kak Ros's Delivery Map (Assignment 1)</option>
+          <option value="weighted">Weighted Dilemma (UCS vs BFS)</option>
           <option value="tree">Binary Tree (DFS vs BFS)</option>
           <option value="romania">Romania Roadmap (AIMA Classic)</option>
           <option value="grid">Lattice Grid Graph</option>
         </select>
       </div>
+
+      <button id="assignment-btn" class="header-btn" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.25)); color: #fbbf24; border-color: rgba(245, 158, 11, 0.45); font-weight: 700;" title="View Complete Assignment 1 Solutions & Traces">
+        <span>📋</span> Assignment 1 Report
+      </button>
 
       <button id="ai-copilot-toggle-btn" class="header-copilot-btn" title="Open Gemini AI Simulation Copilot & Notes">
         <span>✨</span> Gemini Copilot
@@ -400,6 +405,160 @@
     </div>
   </div>
 
+  <!-- Assignment 1 Comprehensive Solutions Modal -->
+  <div id="assignment-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assignment-modal-title">
+    <div class="modal-card" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 14px;">
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #fbbf24; letter-spacing: 0.05em;">TMT4723 Artificial Intelligence (2026/27)</div>
+          <h2 id="assignment-modal-title" style="margin-top: 2px;">Assignment 1: Uninformed Search Simulation &amp; Solutions</h2>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="copy-full-assignment-btn" class="header-btn" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Copy complete answers in Markdown format">
+            <span>📋</span> Copy All Answers
+          </button>
+          <button id="close-assignment-modal" class="modal-close-btn" aria-label="Close Modal">&times;</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Part A -->
+        <div class="assignment-section">
+          <div class="assignment-section-header">
+            <h3>Part A: Agents and Problem Setup (5 marks)</h3>
+          </div>
+          
+          <div class="assignment-qa-card">
+            <h4>A1. Reflex Agent vs. Planning Agent (2 marks)</h4>
+            <div class="qa-answer">
+              <p><strong>• Old App = Reflex Agent:</strong> It acts solely on immediate condition-action rules at each junction (<em>"turn toward nearest exit; if blocked, turn around"</em>). It does not compute future states, consider overall journey consequences, or formulate plans ahead of time.</p>
+              <p style="margin-top: 6px;"><strong>• New App = Planning Agent:</strong> It computes a complete sequence of actions (route from Shop $S$ to Customer $G$) before the rider leaves. It reasons about state transitions, road travel times (costs), and the goal condition to synthesize an optimal plan.</p>
+            </div>
+          </div>
+
+          <div class="assignment-qa-card" style="margin-top: 12px;">
+            <h4>A2. Search Problem Formulation (3 marks)</h4>
+            <div class="qa-answer">
+              <ul>
+                <li><strong>State Space ($S$):</strong> Set of 8 road junctions in Kuching: <code>{S, A, B, C, D, E, F, G}</code>.</li>
+                <li><strong>Start State ($s_0$):</strong> The shop junction, <code>S</code>.</li>
+                <li><strong>Successor Function &amp; Step Costs:</strong> From junction $u$, navigate along any outgoing one-way road to junction $v$ with travel time (minutes) as step cost $c(u, a, v)$:
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 4px; margin-top: 6px; font-family: var(--font-mono); font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;">
+                    <span>S → A : 3 mins</span>
+                    <span>S → B : 1 min</span>
+                    <span>S → C : 6 mins</span>
+                    <span>B → A : 1 min</span>
+                    <span>B → E : 5 mins</span>
+                    <span>A → D : 2 mins</span>
+                    <span>A → G : 9 mins</span>
+                    <span>C → G : 2 mins</span>
+                    <span>D → F : 1 min</span>
+                    <span>D → G : 3 mins</span>
+                    <span>E → G : 4 mins</span>
+                    <span>F → C : 1 min</span>
+                  </div>
+                </li>
+                <li style="margin-top: 8px;"><strong>Goal Test:</strong> Checks if current junction is the customer location: <code>IsGoal(state) ≡ (state == G)</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Part B -->
+        <div class="assignment-section">
+          <div class="assignment-section-header">
+            <h3>Part B: Tracing the Searches (12 marks)</h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Rules: Graph search (never expand twice), Alphabetical tie-breaking, Goal test when dequeued</span>
+          </div>
+
+          <!-- B1 BFS -->
+          <div class="assignment-qa-card">
+            <h4>B1. Breadth-First Search (BFS) (3 marks)</h4>
+            <div class="qa-answer">
+              <p>• <strong>Expansion Order:</strong> <code class="highlight-code">S, A, B, C, D, G</code></p>
+              <p style="margin-top: 6px;">• <strong>Final Path Found:</strong> <code class="highlight-code">S → A → G</code></p>
+              <p style="margin-top: 6px;">• <strong>Path Length &amp; Cost:</strong> 2 hops | Total travel time: 3 + 9 = <strong>12 minutes</strong></p>
+            </div>
+          </div>
+
+          <!-- B2 DFS -->
+          <div class="assignment-qa-card" style="margin-top: 12px;">
+            <h4>B2. Depth-First Search (DFS) (3 marks)</h4>
+            <div class="qa-answer">
+              <p>• <strong>Expansion Order:</strong> <code class="highlight-code">S, A, D, F, C, G</code></p>
+              <p style="margin-top: 6px;">• <strong>Final Path Found:</strong> <code class="highlight-code">S → A → D → F → C → G</code></p>
+              <p style="margin-top: 6px;">• <strong>Path Length &amp; Cost:</strong> 5 hops | Total travel time: 3 + 2 + 1 + 1 + 2 = <strong>9 minutes</strong></p>
+            </div>
+          </div>
+
+          <!-- B3 UCS -->
+          <div class="assignment-qa-card" style="margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <h4>B3. Uniform Cost Search (UCS) Trace Table (6 marks)</h4>
+              <button id="copy-ucs-table-btn" class="note-action-btn" style="color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">
+                <span>📋</span> Copy B3 Table
+              </button>
+            </div>
+            
+            <div class="table-responsive" style="overflow-x: auto; margin-top: 6px;">
+              <table class="assignment-trace-table" id="assignment-ucs-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>Node taken out (cost)</th>
+                    <th>Expand or skip?</th>
+                    <th>Frontier after this step</th>
+                  </tr>
+                </thead>
+                <tbody id="assignment-ucs-tbody">
+                  <tr><td>1</td><td>S (0)</td><td><span class="status-badge success">Expand</span></td><td>B(1), A(3), C(6)</td></tr>
+                  <tr><td>2</td><td>B (1)</td><td><span class="status-badge success">Expand</span></td><td>A(2), A(3), C(6), E(6)</td></tr>
+                  <tr><td>3</td><td>A (2)</td><td><span class="status-badge success">Expand</span></td><td>A(3), D(4), C(6), E(6), G(11)</td></tr>
+                  <tr><td>4</td><td>A (3)</td><td><span class="status-badge failure">Skip</span></td><td>D(4), C(6), E(6), G(11)</td></tr>
+                  <tr><td>5</td><td>D (4)</td><td><span class="status-badge success">Expand</span></td><td>F(5), C(6), E(6), G(7), G(11)</td></tr>
+                  <tr><td>6</td><td>F (5)</td><td><span class="status-badge success">Expand</span></td><td>C(6), E(6), G(7), G(11)</td></tr>
+                  <tr><td>7</td><td>C (6)</td><td><span class="status-badge success">Expand</span></td><td>E(6), G(7), G(11)</td></tr>
+                  <tr><td>8</td><td>E (6)</td><td><span class="status-badge success">Expand</span></td><td>G(7), G(11)</td></tr>
+                  <tr><td>9</td><td>G (7)</td><td><span class="status-badge success" style="background: rgba(56,189,248,0.2); color: #38bdf8; border-color: rgba(56,189,248,0.4);">Goal Reached</span></td><td>G(11)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 12px; font-size: 0.85rem; line-height: 1.6;">
+              <p>• <strong>Expansion Order:</strong> <code class="highlight-code">S, B, A, D, F, C, E, G</code> <em>(Node A(3) was skipped upon dequeue)</em></p>
+              <p>• <strong>Final Path:</strong> <code class="highlight-code">S → B → A → D → G</code></p>
+              <p>• <strong>Total Path Cost:</strong> 1 + 1 + 2 + 3 = <strong>7 minutes</strong> (Optimal!)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Part C -->
+        <div class="assignment-section">
+          <div class="assignment-section-header">
+            <h3>Part C: Compare and Reflect (3 marks)</h3>
+          </div>
+
+          <div class="assignment-qa-card">
+            <h4>C1. Fastest Route &amp; Why BFS Missed It (2 marks)</h4>
+            <div class="qa-answer">
+              <p><strong>• Fastest Search:</strong> <strong>Uniform Cost Search (UCS)</strong> found the fastest route: <code>S → B → A → D → G</code> taking <strong>7 minutes</strong>.</p>
+              <p style="margin-top: 6px;"><strong>• Why BFS Did Not Find It:</strong> Breadth-First Search is unweighted and only minimizes the <strong>number of hops (transitions)</strong>. BFS found path <code>S → A → G</code> simply because it is only <strong>2 hops</strong> away from the start node, even though its edge weights are long (3 + 9 = 12 minutes). BFS operates blindly without regard to edge costs and therefore cannot guarantee cost optimality when step times vary.</p>
+            </div>
+          </div>
+
+          <div class="assignment-qa-card" style="margin-top: 12px;">
+            <h4>C2. When DFS Is a Sensible Choice (1 mark)</h4>
+            <div class="qa-answer">
+              <p>DFS is a sensible choice when <strong>memory/space is severely constrained</strong>. BFS and UCS store the entire exponential frontier in memory ($O(b^d)$ or $O(b^{C^*/\epsilon})$), which easily leads to memory exhaustion. In contrast, DFS requires only linear space $O(b \cdot m)$ where $m$ is maximum search depth. DFS is also effective in maze/satisfaction problems where many valid goal paths exist deep in the tree and finding any solution quickly is acceptable.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="algorithms.js"></script>
   <script src="visualization.js"></script>
@@ -412,8 +571,8 @@
       // Initialize Gemini AI Copilot
       window.aiAssistant = new AIAssistant(visualizer);
 
-      // Load initial preset
-      visualizer.loadPreset('weighted');
+      // Load initial preset (Kak Ros's Delivery Map for Assignment 1)
+      visualizer.loadPreset('kakros');
 
       // Preset Selector
       const presetSelect = document.getElementById('preset-select');
@@ -498,7 +657,7 @@
         }
       });
 
-      // Modal dialog
+      // Guide Modal Dialog
       const helpModal = document.getElementById('help-modal');
       const helpBtn = document.getElementById('help-btn');
       const closeBtn = document.getElementById('modal-close');
@@ -508,6 +667,132 @@
       helpModal.addEventListener('click', (e) => {
         if (e.target === helpModal) helpModal.classList.remove('open');
       });
+
+      // Assignment 1 Solutions Modal Dialog
+      const assignmentModal = document.getElementById('assignment-modal');
+      const assignmentBtn = document.getElementById('assignment-btn');
+      const closeAssignmentBtn = document.getElementById('close-assignment-modal');
+
+      if (assignmentBtn && assignmentModal) {
+        assignmentBtn.addEventListener('click', () => {
+          // If not already on Kak Ros preset, offer to load it
+          if (!visualizer.graph.nodes.has('S') || !visualizer.graph.nodes.has('G')) {
+            visualizer.loadPreset('kakros');
+          }
+          assignmentModal.classList.add('open');
+        });
+
+        closeAssignmentBtn.addEventListener('click', () => assignmentModal.classList.remove('open'));
+        assignmentModal.addEventListener('click', (e) => {
+          if (e.target === assignmentModal) assignmentModal.classList.remove('open');
+        });
+      }
+
+      // Copy UCS Table Button
+      const copyUcsBtn = document.getElementById('copy-ucs-table-btn');
+      if (copyUcsBtn) {
+        copyUcsBtn.addEventListener('click', () => {
+          const markdownTable = 
+`| Step | Node taken out (cost) | Expand or skip? | Frontier after this step |
+| :--- | :--- | :--- | :--- |
+| 1 | S (0) | Expand | B(1), A(3), C(6) |
+| 2 | B (1) | Expand | A(2), A(3), C(6), E(6) |
+| 3 | A (2) | Expand | A(3), D(4), C(6), E(6), G(11) |
+| 4 | A (3) | Skip | D(4), C(6), E(6), G(11) |
+| 5 | D (4) | Expand | F(5), C(6), E(6), G(7), G(11) |
+| 6 | F (5) | Expand | C(6), E(6), G(7), G(11) |
+| 7 | C (6) | Expand | E(6), G(7), G(11) |
+| 8 | E (6) | Expand | G(7), G(11) |
+| 9 | G (7) | Goal Reached | G(11) |
+
+- **Expansion Order:** S, B, A, D, F, C, E, G (Note: Node A(3) was skipped upon dequeue)
+- **Final Path:** S -> B -> A -> D -> G
+- **Total Cost:** 1 + 1 + 2 + 3 = 7 minutes`;
+
+          navigator.clipboard.writeText(markdownTable).then(() => {
+            alert('B3 UCS Table copied to clipboard in Markdown format!');
+          }).catch(err => alert('Could not copy table: ' + err.message));
+        });
+      }
+
+      // Copy Full Assignment Answers Button
+      const copyAllBtn = document.getElementById('copy-full-assignment-btn');
+      if (copyAllBtn) {
+        copyAllBtn.addEventListener('click', () => {
+          const fullReport = 
+`# TMT4723 Artificial Intelligence (2026/27)
+## Assignment 1 Solutions
+
+---
+
+### Part A: Agents and Problem Setup (5 marks)
+
+#### A1. Reflex Agent vs. Planning Agent (2 marks)
+- **Old App is a Reflex Agent:** It acts solely on immediate condition-action rules at each junction ("turn toward nearest exit; if closed, turn around"). It does not compute future states, consider overall journey consequences, or formulate plans ahead of time.
+- **New App is a Planning Agent:** It computes a complete sequence of actions (route from Shop S to Customer G) before the rider leaves. It reasons about state transitions, road travel times (costs), and the goal condition to synthesize an optimal plan.
+
+#### A2. Search Problem Formulation (3 marks)
+- **State Space (S):** Set of 8 road junctions in Kuching: {S, A, B, C, D, E, F, G}.
+- **Start State (s0):** The shop junction, S.
+- **Successor Function & Step Costs:** From junction u, navigate along any outgoing one-way road to junction v with travel time (minutes) as step cost c(u, a, v):
+  - S -> A : 3 mins, S -> B : 1 min, S -> C : 6 mins
+  - B -> A : 1 min, B -> E : 5 mins
+  - A -> D : 2 mins, A -> G : 9 mins
+  - C -> G : 2 mins
+  - D -> F : 1 min, D -> G : 3 mins
+  - E -> G : 4 mins
+  - F -> C : 1 min
+- **Goal Test:** Checks if current junction is the customer location: IsGoal(state) == (state == G).
+
+---
+
+### Part B: Tracing the Searches (12 marks)
+*(Rules: Graph search: never expand same junction twice. Tie-breaking: alphabetical. Goal test: when node is taken out of frontier).*
+
+#### B1. Breadth-First Search (BFS) (3 marks)
+- **Order in which nodes are expanded:** S, A, B, C, D, G
+- **Final Path Found:** S -> A -> G
+- **Path Length & Cost:** 2 hops | Total travel time: 3 + 9 = 12 minutes
+
+#### B2. Depth-First Search (DFS) (3 marks)
+- **Order in which nodes are expanded:** S, A, D, F, C, G
+- **Final Path Found:** S -> A -> D -> F -> C -> G
+- **Path Length & Cost:** 5 hops | Total travel time: 3 + 2 + 1 + 1 + 2 = 9 minutes
+
+#### B3. Uniform Cost Search (UCS) (6 marks)
+
+| Step | Node taken out (cost) | Expand or skip? | Frontier after this step |
+| :--- | :--- | :--- | :--- |
+| 1 | S (0) | Expand | B(1), A(3), C(6) |
+| 2 | B (1) | Expand | A(2), A(3), C(6), E(6) |
+| 3 | A (2) | Expand | A(3), D(4), C(6), E(6), G(11) |
+| 4 | A (3) | Skip | D(4), C(6), E(6), G(11) |
+| 5 | D (4) | Expand | F(5), C(6), E(6), G(7), G(11) |
+| 6 | F (5) | Expand | C(6), E(6), G(7), G(11) |
+| 7 | C (6) | Expand | E(6), G(7), G(11) |
+| 8 | E (6) | Expand | G(7), G(11) |
+| 9 | G (7) | Goal Reached | G(11) |
+
+- **Expansion Order:** S, B, A, D, F, C, E, G *(Node A(3) was skipped upon dequeue)*
+- **Final Path:** S -> B -> A -> D -> G
+- **Total Cost:** 1 + 1 + 2 + 3 = 7 minutes (Optimal route)
+
+---
+
+### Part C: Compare and Reflect (3 marks)
+
+#### C1. Fastest Route & Why BFS Missed It (2 marks)
+- **Fastest Search:** Uniform Cost Search (UCS) found the fastest route (S -> B -> A -> D -> G) with 7 minutes.
+- **Why BFS Did Not Find It:** Breadth-First Search is unweighted and only minimizes the number of hops (edges). BFS found S -> A -> G simply because it is only 2 hops away, even though its edges take 12 minutes. BFS cannot see edge weights and blindly selects the shallowest hop path, failing cost optimality when step times vary.
+
+#### C2. When DFS Is a Sensible Choice (1 mark)
+DFS is a sensible choice when memory/space is severely constrained. While BFS and UCS store exponential frontiers in memory (O(b^d) or O(b^(C*/eps))), DFS requires only linear space O(b * m). It is also sensible in satisfaction problems (e.g., maze solving) where many goal paths exist deep in the tree and finding any solution quickly is acceptable.`;
+
+          navigator.clipboard.writeText(fullReport).then(() => {
+            alert('Full Assignment 1 answers copied to clipboard in Markdown format!');
+          }).catch(err => alert('Could not copy report: ' + err.message));
+        });
+      }
     });
   </script>
 </body>
