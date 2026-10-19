@@ -315,7 +315,7 @@ Uninformed (blind) search algorithms operate without heuristic hints about goal 
 
   async callDirectGeminiClient(payload) {
     const apiKey = this.clientApiKey;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+    const models = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.8-flash'];
     
     const contents = [
       {
@@ -324,27 +324,39 @@ Uninformed (blind) search algorithms operate without heuristic hints about goal 
       }
     ];
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents })
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return { error: data.error?.message || 'Direct Gemini call failed' };
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    let simulationAction = null;
-    const actionMatch = text.match(/```simulation_action\s*([\s\S]*?)\s*```/);
-    if (actionMatch && actionMatch[1]) {
+    let lastError = null;
+    for (const model of models) {
       try {
-        simulationAction = JSON.parse(actionMatch[1]);
-      } catch (e) {}
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          lastError = errData.error?.message || `HTTP ${res.status} (${model})`;
+          continue;
+        }
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        let simulationAction = null;
+        const actionMatch = text.match(/```simulation_action\s*([\s\S]*?)\s*```/);
+        if (actionMatch && actionMatch[1]) {
+          try {
+            simulationAction = JSON.parse(actionMatch[1]);
+          } catch (e) {}
+        }
+
+        return { success: true, text, simulationAction };
+      } catch (e) {
+        lastError = e.message;
+      }
     }
 
-    return { success: true, text, simulationAction };
+    return { error: lastError || 'Direct Gemini call failed' };
   }
 
   executeSimulationAction(actionData) {

@@ -121,8 +121,13 @@ module.exports = async function handler(req, res) {
       parts: [{ text: userMessageText }]
     });
 
-    // Models supported by Google Gemini API
-    const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+    // Models supported by Google Gemini API - prioritize active high-availability models
+    const models = [
+      'gemini-3.5-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3-flash-preview',
+      'gemini-3.8-flash'
+    ];
     let lastError = null;
 
     for (const model of models) {
