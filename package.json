@@ -4,6 +4,7 @@
   "description": "Interactive AI Search Simulation Studio with BFS, DFS, UCS, and Gemini AI Copilot",
   "main": "server.js",
   "scripts": {
+    "build": "echo 'Static build ready'",
     "start": "node server.js",
     "dev": "node server.js"
   },
