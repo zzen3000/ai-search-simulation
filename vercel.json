@@ -1,5 +1,41 @@
 {
-  "cleanUrls": true,
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/gemini.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/gemini",
+      "dest": "/api/gemini.js"
+    },
+    {
+      "src": "/styles.css",
+      "dest": "/styles.css"
+    },
+    {
+      "src": "/algorithms.js",
+      "dest": "/algorithms.js"
+    },
+    {
+      "src": "/visualization.js",
+      "dest": "/visualization.js"
+    },
+    {
+      "src": "/ai-assistant.js",
+      "dest": "/ai-assistant.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
