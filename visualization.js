@@ -234,6 +234,72 @@ class Graph {
     return g;
   }
 
+  /**
+   * Level-Order / BFS Level Tree
+   * 5 levels (L0–L4) with branching factor 2-3.
+   * Designed to make BFS level-by-level expansion visually obvious.
+   * Each node label shows its level (L0, L1a, L1b, …).
+   */
+  static createLevelOrderTree() {
+    const g = new Graph();
+    const cx = 450; // horizontal center
+    const lvlGap = 100; // vertical gap per level
+    const startY = 60;
+
+    // Level 0: Root
+    g.addNode('L0', 'L0 (Root)', cx, startY);
+
+    // Level 1: 2 children
+    g.addNode('L1a', 'L1-A', cx - 280, startY + lvlGap);
+    g.addNode('L1b', 'L1-B', cx + 280, startY + lvlGap);
+
+    // Level 2: 2 children each (4 nodes)
+    g.addNode('L2a', 'L2-A', cx - 420, startY + lvlGap * 2);
+    g.addNode('L2b', 'L2-B', cx - 140, startY + lvlGap * 2);
+    g.addNode('L2c', 'L2-C', cx + 140, startY + lvlGap * 2);
+    g.addNode('L2d', 'L2-D', cx + 420, startY + lvlGap * 2);
+
+    // Level 3: 2 children each from L2a..L2d (8 nodes)
+    g.addNode('L3a', 'L3-A', cx - 490, startY + lvlGap * 3);
+    g.addNode('L3b', 'L3-B', cx - 350, startY + lvlGap * 3);
+    g.addNode('L3c', 'L3-C', cx - 210, startY + lvlGap * 3);
+    g.addNode('L3d', 'L3-D', cx -  70, startY + lvlGap * 3);
+    g.addNode('L3e', 'L3-E', cx +  70, startY + lvlGap * 3);
+    g.addNode('L3f', 'L3-F', cx + 210, startY + lvlGap * 3);
+    g.addNode('L3g', 'L3-G', cx + 350, startY + lvlGap * 3);
+    g.addNode('L3h', 'L3-H ★', cx + 490, startY + lvlGap * 3);
+
+    // Level 4: goal placed deep in right subtree (shows BFS won't skip levels)
+    g.addNode('L4a', 'L4-A', cx + 350, startY + lvlGap * 4);
+    g.addNode('L4b', 'GOAL ✓', cx + 490, startY + lvlGap * 4);
+
+    // Edges Level 0 → 1
+    g.addEdge('L0',  'L1a', 1);
+    g.addEdge('L0',  'L1b', 1);
+
+    // Edges Level 1 → 2
+    g.addEdge('L1a', 'L2a', 1);
+    g.addEdge('L1a', 'L2b', 1);
+    g.addEdge('L1b', 'L2c', 1);
+    g.addEdge('L1b', 'L2d', 1);
+
+    // Edges Level 2 → 3
+    g.addEdge('L2a', 'L3a', 1);
+    g.addEdge('L2a', 'L3b', 1);
+    g.addEdge('L2b', 'L3c', 1);
+    g.addEdge('L2b', 'L3d', 1);
+    g.addEdge('L2c', 'L3e', 1);
+    g.addEdge('L2c', 'L3f', 1);
+    g.addEdge('L2d', 'L3g', 1);
+    g.addEdge('L2d', 'L3h', 1);
+
+    // Edges Level 3 → 4 (only right side has children)
+    g.addEdge('L3g', 'L4a', 1);
+    g.addEdge('L3h', 'L4b', 1);
+
+    return g;
+  }
+
   static createLatticeGrid() {
     const g = new Graph();
     const rows = 4;
@@ -637,6 +703,11 @@ class Visualizer {
         this.graph = Graph.createLatticeGrid();
         this.startNodeId = 'N_0_0';
         this.goalNodeId = 'N_3_4';
+        break;
+      case 'levelorder':
+        this.graph = Graph.createLevelOrderTree();
+        this.startNodeId = 'L0';
+        this.goalNodeId = 'L4b';
         break;
       default:
         this.graph = Graph.createKakRosMap();
