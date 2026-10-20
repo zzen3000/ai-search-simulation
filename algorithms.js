@@ -179,7 +179,7 @@ class SearchEngine {
         frontier: queue,
         treeEdges,
         action: 'DEQUEUE',
-        message: `Dequeued node [${graph.getNodeLabel(currentId)}] from front of queue.`
+        message: `Dequeued node [${graph.getNodeLabel(currentId)}] (depth ${currentPath.length - 1}) from front of queue.`
       });
 
       // Goal test
@@ -232,7 +232,7 @@ class SearchEngine {
             frontier: queue,
             treeEdges,
             action: 'ENQUEUE',
-            message: `Discovered unvisited neighbor [${graph.getNodeLabel(neighborId)}]. Enqueued into FIFO frontier.`
+            message: `Discovered unvisited neighbor [${graph.getNodeLabel(neighborId)}] at depth ${nextPath.length - 1} (via [${graph.getNodeLabel(currentId)}]). Enqueued into FIFO frontier.`
           });
         } else {
           addFrame({

@@ -81,6 +81,8 @@ class Graph {
   clear() {
     this.nodes.clear();
     this.edges.clear();
+    this.levelBands = null;
+    this.levelCaption = null;
   }
 
   // Pre-configured Graph Generators
@@ -235,67 +237,54 @@ class Graph {
   }
 
   /**
-   * Level-Order / BFS Level Tree
-   * 5 levels (L0–L4) with branching factor 2-3.
-   * Designed to make BFS level-by-level expansion visually obvious.
-   * Each node label shows its level (L0, L1a, L1b, …).
+   * BFS Level-by-Level Search Tree (start S, goal G)
+   * The search tree BFS grows on Kak Ros's map. In BFS a node's priority
+   * is its depth (level) in the search tree:
+   *   Level 0: S
+   *   Level 1 (1 step from S):  A, B, C
+   *   Level 2 (2 steps from S): D (via A), G (via A), E (via B)
+   * Every edge is one step, so path cost equals depth.
    */
   static createLevelOrderTree() {
     const g = new Graph();
-    const cx = 450; // horizontal center
-    const lvlGap = 100; // vertical gap per level
-    const startY = 60;
+    g.isDirected = true; // parent -> child arrows
 
-    // Level 0: Root
-    g.addNode('L0', 'L0 (Root)', cx, startY);
+    const cx = 450;     // horizontal center
+    const lvlGap = 140; // vertical gap per level
+    const y0 = 90;
+    const y1 = y0 + lvlGap;
+    const y2 = y0 + lvlGap * 2;
 
-    // Level 1: 2 children
-    g.addNode('L1a', 'L1-A', cx - 280, startY + lvlGap);
-    g.addNode('L1b', 'L1-B', cx + 280, startY + lvlGap);
+    // Level 0: start
+    g.addNode('S', 'S', cx, y0);
 
-    // Level 2: 2 children each (4 nodes)
-    g.addNode('L2a', 'L2-A', cx - 420, startY + lvlGap * 2);
-    g.addNode('L2b', 'L2-B', cx - 140, startY + lvlGap * 2);
-    g.addNode('L2c', 'L2-C', cx + 140, startY + lvlGap * 2);
-    g.addNode('L2d', 'L2-D', cx + 420, startY + lvlGap * 2);
+    // Level 1: 1 step from S
+    g.addNode('A', 'A', cx - 260, y1);
+    g.addNode('B', 'B', cx, y1);
+    g.addNode('C', 'C', cx + 260, y1);
 
-    // Level 3: 2 children each from L2a..L2d (8 nodes)
-    g.addNode('L3a', 'L3-A', cx - 490, startY + lvlGap * 3);
-    g.addNode('L3b', 'L3-B', cx - 350, startY + lvlGap * 3);
-    g.addNode('L3c', 'L3-C', cx - 210, startY + lvlGap * 3);
-    g.addNode('L3d', 'L3-D', cx -  70, startY + lvlGap * 3);
-    g.addNode('L3e', 'L3-E', cx +  70, startY + lvlGap * 3);
-    g.addNode('L3f', 'L3-F', cx + 210, startY + lvlGap * 3);
-    g.addNode('L3g', 'L3-G', cx + 350, startY + lvlGap * 3);
-    g.addNode('L3h', 'L3-H ★', cx + 490, startY + lvlGap * 3);
+    // Level 2: 2 steps from S
+    g.addNode('D', 'D', cx - 340, y2); // via A
+    g.addNode('G', 'G', cx - 180, y2); // via A (goal)
+    g.addNode('E', 'E', cx, y2);       // via B
 
-    // Level 4: goal placed deep in right subtree (shows BFS won't skip levels)
-    g.addNode('L4a', 'L4-A', cx + 350, startY + lvlGap * 4);
-    g.addNode('L4b', 'GOAL ✓', cx + 490, startY + lvlGap * 4);
+    // Level 0 -> 1
+    g.addEdge('S', 'A', 1);
+    g.addEdge('S', 'B', 1);
+    g.addEdge('S', 'C', 1);
 
-    // Edges Level 0 → 1
-    g.addEdge('L0',  'L1a', 1);
-    g.addEdge('L0',  'L1b', 1);
+    // Level 1 -> 2
+    g.addEdge('A', 'D', 1);
+    g.addEdge('A', 'G', 1);
+    g.addEdge('B', 'E', 1);
 
-    // Edges Level 1 → 2
-    g.addEdge('L1a', 'L2a', 1);
-    g.addEdge('L1a', 'L2b', 1);
-    g.addEdge('L1b', 'L2c', 1);
-    g.addEdge('L1b', 'L2d', 1);
-
-    // Edges Level 2 → 3
-    g.addEdge('L2a', 'L3a', 1);
-    g.addEdge('L2a', 'L3b', 1);
-    g.addEdge('L2b', 'L3c', 1);
-    g.addEdge('L2b', 'L3d', 1);
-    g.addEdge('L2c', 'L3e', 1);
-    g.addEdge('L2c', 'L3f', 1);
-    g.addEdge('L2d', 'L3g', 1);
-    g.addEdge('L2d', 'L3h', 1);
-
-    // Edges Level 3 → 4 (only right side has children)
-    g.addEdge('L3g', 'L4a', 1);
-    g.addEdge('L3h', 'L4b', 1);
+    // Level bands drawn behind the tree (see Visualizer.renderLevelBands)
+    g.levelCaption = 'BFS priority = depth (level) in the search tree';
+    g.levelBands = [
+      { y: y0, title: 'Level 0', subtitle: 'Start node', nodes: ['S'] },
+      { y: y1, title: 'Level 1', subtitle: '1 step from S', nodes: ['A', 'B', 'C'] },
+      { y: y2, title: 'Level 2', subtitle: '2 steps from S', nodes: ['D', 'G', 'E'] }
+    ];
 
     return g;
   }
@@ -706,8 +695,8 @@ class Visualizer {
         break;
       case 'levelorder':
         this.graph = Graph.createLevelOrderTree();
-        this.startNodeId = 'L0';
-        this.goalNodeId = 'L4b';
+        this.startNodeId = 'S';
+        this.goalNodeId = 'G';
         break;
       default:
         this.graph = Graph.createKakRosMap();
@@ -729,6 +718,14 @@ class Visualizer {
       maxX = Math.max(maxX, node.x);
       minY = Math.min(minY, node.y);
       maxY = Math.max(maxY, node.y);
+    }
+
+    const bands = this.getLevelBandGeometry();
+    if (bands) {
+      minX = Math.min(minX, bands.left);
+      maxX = Math.max(maxX, bands.right);
+      minY = Math.min(minY, bands.top);
+      maxY = Math.max(maxY, bands.bottom);
     }
 
     const padding = 80;
@@ -979,11 +976,15 @@ class Visualizer {
       itemsHtml = frontier.map((item, idx) => {
         const isHead = idx === 0;
         const label = this.graph.getNodeLabel(item.id);
+        const depth = item.path ? item.path.length - 1 : 0;
         const pathPreview = item.path ? item.path.map(id => this.graph.getNodeLabel(id)).join(' → ') : '';
         return `
           <div class="ds-item queue-item ${isHead ? 'is-head' : ''}">
             <div class="ds-tag">${isHead ? 'HEAD' : '#' + (idx + 1)}</div>
-            <div class="ds-node-name">${label}</div>
+            <div class="ds-node-info">
+              <span class="ds-node-name">${label}</span>
+              <span class="ds-node-cost">depth: ${depth}</span>
+            </div>
             <div class="ds-path-preview" title="${pathPreview}">${pathPreview}</div>
           </div>
         `;
@@ -1058,6 +1059,9 @@ class Visualizer {
     const finalPath = frame && frame.path ? frame.path : null;
     const currentNode = frame ? frame.currentNode : null;
 
+    // 0. Render level bands (BFS level-by-level tree)
+    this.renderLevelBands(ctx, currentNode);
+
     // 1. Render Edges
     this.renderEdges(ctx, treeEdgeSet, activeEdge, finalPath);
 
@@ -1080,6 +1084,79 @@ class Visualizer {
 
     // 3. Render Nodes
     this.renderNodes(ctx, visitedSet, frontierSet, currentNode, finalPath);
+
+    ctx.restore();
+  }
+
+  /**
+   * Geometry for level bands, derived from current node positions so the
+   * labels follow the tree when nodes are dragged. Returns null if the
+   * graph has no level bands.
+   */
+  getLevelBandGeometry() {
+    const bands = this.graph.levelBands;
+    if (!bands || bands.length === 0 || this.graph.nodes.size === 0) return null;
+
+    let minX = Infinity, maxX = -Infinity;
+    for (const node of this.graph.nodes.values()) {
+      minX = Math.min(minX, node.x);
+      maxX = Math.max(maxX, node.x);
+    }
+
+    const halfH = 45;
+    const labelX = minX - 190;
+    const ys = bands.map(b => b.y);
+    return {
+      bands,
+      halfH,
+      labelX,
+      left: labelX - 18,
+      right: maxX + 70,
+      top: Math.min(...ys) - halfH - 30, // room for the caption
+      bottom: Math.max(...ys) + halfH
+    };
+  }
+
+  renderLevelBands(ctx, currentNode) {
+    const geo = this.getLevelBandGeometry();
+    if (!geo) return;
+
+    ctx.save();
+
+    // Caption above the first band
+    if (this.graph.levelCaption) {
+      ctx.font = '600 12px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.graph.levelCaption, geo.labelX, geo.top + 10);
+    }
+
+    for (const band of geo.bands) {
+      const isActive = !!currentNode && Array.isArray(band.nodes) && band.nodes.includes(currentNode);
+
+      // Band background
+      ctx.beginPath();
+      ctx.roundRect(geo.left, band.y - geo.halfH, geo.right - geo.left, geo.halfH * 2, 12);
+      ctx.fillStyle = isActive ? 'rgba(56, 189, 248, 0.08)' : 'rgba(148, 163, 184, 0.035)';
+      ctx.fill();
+      ctx.lineWidth = isActive ? 1.5 : 1;
+      ctx.strokeStyle = isActive ? 'rgba(56, 189, 248, 0.45)' : 'rgba(148, 163, 184, 0.14)';
+      ctx.stroke();
+
+      // Title + subtitle on the left
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.font = '800 14px Inter, system-ui, sans-serif';
+      ctx.fillStyle = isActive ? '#38bdf8' : '#cbd5e1';
+      ctx.fillText(band.title, geo.labelX, band.y - 9);
+
+      if (band.subtitle) {
+        ctx.font = '500 11px Inter, system-ui, sans-serif';
+        ctx.fillStyle = isActive ? '#7dd3fc' : '#64748b';
+        ctx.fillText(band.subtitle, geo.labelX, band.y + 10);
+      }
+    }
 
     ctx.restore();
   }
